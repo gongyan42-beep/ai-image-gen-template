@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正心AI - 服装板块AI图片生成</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-box:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        .upload-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .upload-box p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 15px;
+            border-radius: 10px;
+        }
+
+        .config-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 30px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-section {
+            text-align: center;
+        }
+
+        .result-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        #customSceneInput {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section {
+                grid-template-columns: 1fr;
+            }
+
+            .config-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 正心AI</h1>
+        <p class="subtitle">服装板块 AI 图片生成</p>
+
+        <div class="error" id="errorMsg"></div>
+
+        <div class="upload-section">
+            <div class="upload-box" onclick="document.getElementById('garmentInput').click()">
+                <h3>📸 服装图片 *</h3>
+                <p>点击上传服装照片</p>
+                <input type="file" id="garmentInput" accept="image/*" onchange="previewImage(this, 'garmentPreview')">
+                <img id="garmentPreview" class="preview-image" style="display:none;">
+            </div>
+
+            <div class="upload-box" onclick="document.getElementById('referenceInput').click()">
+                <h3>🖼️ 参考图片（可选）</h3>
+                <p>上传参考姿势/构图的图片</p>
+                <input type="file" id="referenceInput" accept="image/*" onchange="previewImage(this, 'referencePreview')">
+                <img id="referencePreview" class="preview-image" style="display:none;">
+            </div>
+        </div>
+
+        <div class="config-section">
+            <div class="form-group">
+                <label>模特种族</label>
+                <select id="modelEthnicity">
+                    <option value="Asian">亚洲人</option>
+                    <option value="Caucasian">白种人</option>
+                    <option value="African">非洲人</option>
+                    <option value="Hispanic">拉丁裔</option>
+                    <option value="Mixed">混血</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>模特性别</label>
+                <select id="modelGender">
+                    <option value="Female">女性</option>
+                    <option value="Male">男性</option>
+                    <option value="Non-binary">中性</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>年龄范围</label>
+                <select id="ageRange">
+                    <option value="18-25">18-25岁</option>
+                    <option value="20-30" selected>20-30岁</option>
+                    <option value="30-40">30-40岁</option>
+                    <option value="40-50">40-50岁</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>场景背景</label>
+                <select id="scene" onchange="toggleCustomScene()">
+                    <option value="Studio with neutral background" selected>工作室中性背景</option>
+                    <option value="Urban street">城市街道</option>
+                    <option value="Beach sunset">海滩日落</option>
+                    <option value="Luxury hotel lobby">奢华酒店大堂</option>
+                    <option value="Modern office">现代办公室</option>
+                    <option value="Garden park">花园公园</option>
+                    <option value="Shopping mall">购物中心</option>
+                    <option value="Coffee shop">咖啡厅</option>
+                    <option value="Rooftop terrace">屋顶露台</option>
+                    <option value="Art gallery">艺术画廊</option>
+                    <option value="custom">自定义场景...</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customSceneGroup" style="display:none;">
+                <label>自定义场景描述</label>
+                <input type="text" id="customSceneInput" placeholder="请输入您想要的场景，如：海边、森林等">
+            </div>
+
+            <div class="form-group">
+                <label>光照风格</label>
+                <select id="style">
+                    <option value="Professional fashion photography lighting" selected>专业时尚摄影</option>
+                    <option value="Natural daylight">自然日光</option>
+                    <option value="Golden hour">黄金时刻</option>
+                    <option value="Dramatic lighting">戏剧性光照</option>
+                    <option value="Soft studio lighting">柔和工作室光</option>
+                    <option value="Neon night lighting">霓虹夜景</option>
+                    <option value="Vintage film lighting">复古胶片</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>图片比例</label>
+                <select id="aspectRatio">
+                    <option value="1:1" selected>1:1 (正方形)</option>
+                    <option value="3:4">3:4 (竖版)</option>
+                    <option value="4:3">4:3 (横版)</option>
+                    <option value="9:16">9:16 (手机竖版)</option>
+                    <option value="16:9">16:9 (宽屏)</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="generate-btn" onclick="generateImage()">✨ 生成图片</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI 正在生成您的时尚照片，请稍候...</p>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display:none;">
+            <h2 style="margin-bottom: 20px; color: #667eea;">生成结果</h2>
+            <img id="resultImage" class="result-image">
+            <div style="margin-top: 20px;">
+                <button onclick="downloadImage()" style="padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                    ⬇️ 下载图片
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCustomScene() {
+            const sceneSelect = document.getElementById('scene');
+            const customGroup = document.getElementById('customSceneGroup');
+            const customInput = document.getElementById('customSceneInput');
+
+            if (sceneSelect.value === 'custom') {
+                customGroup.style.display = 'block';
+                customInput.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+                customInput.style.display = 'none';
+            }
+        }
+
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        async function generateImage() {
+            const garmentInput = document.getElementById('garmentInput');
+
+            if (!garmentInput.files || !garmentInput.files[0]) {
+                showError('请先上传服装图片！');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('garment', garmentInput.files[0]);
+
+            const referenceInput = document.getElementById('referenceInput');
+            if (referenceInput.files && referenceInput.files[0]) {
+                formData.append('reference', referenceInput.files[0]);
+            }
+
+            // 处理场景选择
+            let sceneValue = document.getElementById('scene').value;
+            if (sceneValue === 'custom') {
+                const customScene = document.getElementById('customSceneInput').value.trim();
+                if (!customScene) {
+                    showError('请输入自定义场景描述！');
+                    return;
+                }
+                sceneValue = customScene;
+            }
+
+            formData.append('modelEthnicity', document.getElementById('modelEthnicity').value);
+            formData.append('modelGender', document.getElementById('modelGender').value);
+            formData.append('ageRange', document.getElementById('ageRange').value);
+            formData.append('scene', sceneValue);
+            formData.append('style', document.getElementById('style').value);
+            formData.append('aspectRatio', document.getElementById('aspectRatio').value);
+
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultSection').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('resultImage').src = data.image;
+                    document.getElementById('resultSection').style.display = 'block';
+                } else {
+                    showError(data.message || data.error || '生成失败，请重试');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('网络错误，请检查连接后重试');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        function downloadImage() {
+            const img = document.getElementById('resultImage');
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'fashion-ai-' + Date.now() + '.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>
